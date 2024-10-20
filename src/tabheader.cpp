@@ -297,6 +297,8 @@ void TabHeader::performLayout(NVGcontext* ctx) {
     calculateVisibleEnd();
     if (mVisibleStart != 0 || mVisibleEnd != tabCount())
         mOverflowing = true;
+    else
+        mOverflowing = false;
 }
 
 Vector2i TabHeader::preferredSize(NVGcontext* ctx) const {
