@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <nanogui/tabheader.h>
 #include <nanogui/widget.h>
 #include <functional>
 

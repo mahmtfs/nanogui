@@ -13,12 +13,14 @@
 */
 
 #include <nanogui/tabwidget.h>
-#include <nanogui/tabheader.h>
+#include <nanogui/tabmanager.h>
 #include <nanogui/stackedwidget.h>
 #include <nanogui/theme.h>
 #include <nanogui/opengl.h>
 #include <nanogui/window.h>
 #include <nanogui/screen.h>
+#include <nanogui/layout.h>
+#include <nanogui/label.h>
 #include <algorithm>
 
 NAMESPACE_BEGIN(nanogui)
@@ -38,6 +40,8 @@ TabWidget::TabWidget(Widget* parent)
         if (mCallback)
             mCallback(i);
     });
+
+    TabManager::receiver = this;
 }
 
 void TabWidget::addChild(int /*index*/, Widget * /*widget*/) {
@@ -135,11 +139,19 @@ bool TabWidget::removeTab(const std::string &tabName) {
 }
 
 void TabWidget::removeTab(int index) {
-    assert(mContent->childCount() < index);
+    assert(mContent->childCount() > index);
     mHeader->removeTab(index);
     mContent->removeChild(index);
-    if (activeTab() == index)
+    if (activeTab() == index && tabCount()){
         setActiveTab(index == (index - 1) ? index - 1 : 0);
+    }
+    if (!tabCount()){
+        Widget* layer = this->createTab("Main");
+        layer->setLayout(new GroupLayout());
+        layer->add<Label>("Main Tab", "sans-bold");
+        setActiveTab(0);
+        performLayout(mContent->screen()->nvgContext());
+    }
 }
 
 const std::string &TabWidget::tabLabelAt(int index) const {

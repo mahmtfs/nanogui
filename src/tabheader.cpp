@@ -12,21 +12,40 @@
 */
 
 #include <nanogui/tabheader.h>
+#include <nanogui/tabwidget.h>
+#include <nanogui/tabmanager.h>
 #include <nanogui/theme.h>
+#include <nanogui/screen.h>
 #include <nanogui/opengl.h>
 #include <numeric>
+#include <algorithm>
+#include <memory>
 
 NAMESPACE_BEGIN(nanogui)
 
 TabHeader::TabButton::TabButton(TabHeader &header, const std::string &label)
-    : mHeader(&header), mLabel(label) { }
+    : mHeader(&header), mLabel(label) {
+        setCloseButton(header.add<Button>("", ENTYPO_ICON_CIRCLE_WITH_CROSS));
+        closeButton()->setFixedSize(mHeader->mTheme->mTabCloseButtonSize);
+        closeButton()->setCallback([&](){
+            int activeTab = header.activeTab();
+            TabManager::sendRemoveRequest(activeTab);
+            if (header.tabCount() + 1 != 1 && activeTab != 0){
+                header.removeChild(header.activeTab()+1);
+            }
+            else{
+                header.removeChild(0);
+            }
+            header.performLayout(header.screen()->nvgContext());
+        });
+    }
 
 Vector2i TabHeader::TabButton::preferredSize(NVGcontext *ctx) const {
     // No need to call nvg font related functions since this is done by the tab header implementation
     float bounds[4];
     int labelWidth = nvgTextBounds(ctx, 0, 0, mLabel.c_str(), nullptr, bounds);
-    int buttonWidth = labelWidth + 2 * mHeader->theme()->mTabButtonHorizontalPadding;
-    int buttonHeight = bounds[3] - bounds[1] + 2 * mHeader->theme()->mTabButtonVerticalPadding;
+    int buttonWidth = std::min(labelWidth + 2 * mHeader->mTheme->mTabButtonHorizontalPadding + mHeader->mTheme->mTabCloseButtonSize.y(), mHeader->mTheme->mTabMaxButtonWidth);
+    int buttonHeight = bounds[3] - bounds[1] + 2 * mHeader->mTheme->mTabButtonVerticalPadding;
     return Vector2i(buttonWidth, buttonHeight);
 }
 
@@ -147,13 +166,18 @@ void TabHeader::TabButton::drawInactiveBorderAt(NVGcontext *ctx, const Vector2i 
 
 
 TabHeader::TabHeader(Widget* parent, const std::string& font)
-    : Widget(parent), mFont(font) { }
+    : Widget(parent), mFont(font) {
+        TabManager::sender = this;
+    }
 
 void TabHeader::setActiveTab(int tabIndex) {
     assert(tabIndex < tabCount());
-    mActiveTab = tabIndex;
-    if (mCallback)
-        mCallback(tabIndex);
+    if (tabCount()){
+        assert(tabIndex < tabCount());
+        mActiveTab = tabIndex;
+        if (mCallback)
+            mCallback(tabIndex);
+    }
 }
 
 int TabHeader::activeTab() const {
@@ -189,8 +213,9 @@ int TabHeader::removeTab(const std::string &label) {
 void TabHeader::removeTab(int index) {
     assert(index < tabCount());
     mTabButtons.erase(std::next(mTabButtons.begin(), index));
-    if (index == mActiveTab && index != 0)
+    if (index == mActiveTab && index != 0 && tabCount()){
         setActiveTab(index - 1);
+    }
 }
 
 const std::string& TabHeader::tabLabelAt(int index) const {
@@ -284,19 +309,29 @@ void TabHeader::performLayout(NVGcontext* ctx) {
 
     Vector2i currentPosition = Vector2i::Zero();
     // Place the tab buttons relative to the beginning of the tab header.
-    for (auto& tab : mTabButtons) {
-        auto tabPreferred = tab.preferredSize(ctx);
-        if (tabPreferred.x() < theme()->mTabMinButtonWidth)
-            tabPreferred.x() = theme()->mTabMinButtonWidth;
+    for (int i = 0; i < mTabButtons.size(); i++) {
+        auto tabPreferred = mTabButtons[i].preferredSize(ctx);
+        if (tabPreferred.x() < mTheme->mTabMinButtonWidth)
+            tabPreferred.x() = mTheme->mTabMinButtonWidth;
         else if (tabPreferred.x() > theme()->mTabMaxButtonWidth)
             tabPreferred.x() = theme()->mTabMaxButtonWidth;
-        tab.setSize(tabPreferred);
-        tab.calculateVisibleString(ctx);
+        mTabButtons[i].setSize(tabPreferred);
+        mTabButtons[i].calculateVisibleString(ctx);
         currentPosition.x() += tabPreferred.x();
     }
     calculateVisibleEnd();
-    if (mVisibleStart != 0 || mVisibleEnd != tabCount())
-        mOverflowing = true;
+    double tabsWidth = 0;
+    for (TabButton tab : this->mTabButtons){
+        tabsWidth += tab.size().x();
+    }
+    mOverflowing = this->parent()->width() < tabsWidth;
+    if (mOverflowing){
+        this->theme()->mTabControlWidth = 20;
+    }
+    else{
+        mVisibleStart = 0;
+        this->theme()->mTabControlWidth = 0;
+    }
 }
 
 Vector2i TabHeader::preferredSize(NVGcontext* ctx) const {
@@ -383,8 +418,11 @@ void TabHeader::draw(NVGcontext* ctx) {
     }
 
     // Draw active visible button.
-    if (drawActive)
+    if (drawActive){
         active->drawAtPosition(ctx, activePosition, true);
+        active->closeButton()->setPosition(nanogui::Vector2i(activePosition.x() + active->size().x() - mTheme->mTabCloseButtonSize.x(), 0));
+    }
+    updateCloseButtons();
 }
 
 void TabHeader::calculateVisibleEnd() {
@@ -473,6 +511,17 @@ void TabHeader::onArrowRight() {
         return;
     ++mVisibleStart;
     calculateVisibleEnd();
+}
+
+void TabHeader::updateCloseButtons() {
+    for (int i = 0; i < tabCount(); i++) {
+        if (i == activeTab()) {
+            mTabButtons[i].closeButton()->setVisible(isTabVisible(activeTab()));
+        }
+        else {
+            mTabButtons[i].closeButton()->setVisible(false);
+        }
+    }
 }
 
 NAMESPACE_END(nanogui)

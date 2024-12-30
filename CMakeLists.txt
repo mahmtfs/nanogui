@@ -340,6 +340,7 @@ add_library(nanogui-obj OBJECT
   include/nanogui/graph.h src/graph.cpp
   include/nanogui/stackedwidget.h src/stackedwidget.cpp
   include/nanogui/tabheader.h src/tabheader.cpp
+  include/nanogui/tabmanager.h src/tabmanager.cpp
   include/nanogui/tabwidget.h src/tabwidget.cpp
   include/nanogui/glcanvas.h src/glcanvas.cpp
   include/nanogui/formhelper.h

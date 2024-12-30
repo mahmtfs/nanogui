@@ -73,6 +73,8 @@ public:
     int mTabButtonHorizontalPadding;
     /// The amount of vertical padding for a TabHeader widget (default: ``2``).
     int mTabButtonVerticalPadding;
+    /// The size of the close button in tabs (defaults: ``(20, 20)``).
+    Vector2i mTabCloseButtonSize;
 
     /* Generic colors */
     /**

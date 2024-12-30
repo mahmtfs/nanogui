@@ -15,6 +15,8 @@
 #pragma once
 
 #include <nanogui/widget.h>
+#include <nanogui/entypo.h>
+#include <nanogui/button.h>
 #include <vector>
 #include <string>
 #include <functional>
@@ -99,6 +101,8 @@ public:
 
     virtual void draw(NVGcontext* ctx) override;
 
+    void updateCloseButtons();
+
 private:
     /**
      * \class TabButton tabheader.h
@@ -115,6 +119,8 @@ private:
         const std::string& label() const { return mLabel; }
         void setSize(const Vector2i& size) { mSize = size; }
         const Vector2i& size() const { return mSize; }
+        void setCloseButton(Button* button) { mCloseButton = button; }
+        Button* closeButton(){ return mCloseButton; }
 
         Vector2i preferredSize(NVGcontext* ctx) const;
         void calculateVisibleString(NVGcontext* ctx);
@@ -125,6 +131,7 @@ private:
     private:
         TabHeader* mHeader;
         std::string mLabel;
+        Button *mCloseButton;
         Vector2i mSize;
 
         /**
