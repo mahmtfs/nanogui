@@ -3,7 +3,7 @@
     url = https://github.com/wjakob/nanovg
 [submodule "ext/glfw"]
     path = ext/glfw
-    url = https://github.com/wjakob/glfw
+    url = https://github.com/mahmtfs/glfw.git
 [submodule "ext/eigen"]
     path = ext/eigen
     url = https://github.com/eigenteam/eigen-git-mirror.git
